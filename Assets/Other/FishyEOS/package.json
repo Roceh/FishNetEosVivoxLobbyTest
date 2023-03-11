@@ -1,0 +1,8 @@
+{
+  "name": "com.etdofresh.fishyeos",
+  "displayName": "FishNet-FishyEOS",
+  "version": "0.0.4",
+  "unity": "2020.1",
+  "description": "FishNet-FishyEOS",
+  "type": "library"
+}
