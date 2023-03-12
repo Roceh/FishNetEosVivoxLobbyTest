@@ -8,7 +8,7 @@ namespace EOSLobbyTest
     {
         private void Update()
         {
-            if (IsOwner && VivoxManager.Instance.TransmittingSession != null && VivoxManager.Instance.TransmittingSession.AudioState == ConnectionState.Connected)
+            if (IsOwner && VivoxManager.Instance != null && VivoxManager.Instance.TransmittingSession != null && VivoxManager.Instance.TransmittingSession.AudioState == ConnectionState.Connected)
             {
                 VivoxManager.Instance.TransmittingSession.Set3DPosition(transform.position, transform.position, transform.forward, transform.up);
             }

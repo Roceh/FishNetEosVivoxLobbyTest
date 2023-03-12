@@ -51,23 +51,36 @@ namespace EOSLobbyTest
         {
             base.OnStopClient();
 
-            if (IsOwner && EOS.GetCachedLobbyInterface() != null)
-            {
-                var updateLobbyModificationOptions = new LeaveLobbyOptions { LocalUserId = ProductUserId.FromString(UserId), LobbyId = PlayerManager.Instance.ActiveLobbyId };
+            // we have dropped a connection - try to leave the EOS lobby we were in - we might have already left it
+            // in which case this will just warn it cannot leave
+            CleanUpEOSandVivox();
+        }
 
-                // as we have a bit of a race condition depending whether the server kicks or we leave
-                // just report the failure as a normal log
-                EOS.GetCachedLobbyInterface().LeaveLobby(ref updateLobbyModificationOptions, null, delegate (ref LeaveLobbyCallbackInfo data)
+        private void CleanUpEOSandVivox()
+        {
+            if (IsOwner)
+            {
+                if (EOS.GetCachedLobbyInterface() != null)
                 {
-                    if (data.ResultCode != Result.Success)
+                    var updateLobbyModificationOptions = new LeaveLobbyOptions { LocalUserId = ProductUserId.FromString(UserId), LobbyId = PlayerManager.Instance.ActiveLobbyId };
+
+                    // as we have a bit of a race condition depending whether the server kicks or we leave
+                    // just report the failure as a normal log
+                    EOS.GetCachedLobbyInterface().LeaveLobby(ref updateLobbyModificationOptions, null, delegate (ref LeaveLobbyCallbackInfo data)
                     {
-                        Debug.Log($"User {UserId} failed to leave EOS lobby: {data.ResultCode}");
-                    }
-                    else
-                    {
-                        Debug.Log($"User {UserId} left EOS lobby");
-                    }
-                });
+                        if (data.ResultCode != Result.Success)
+                        {
+                            Debug.Log($"User {UserId} failed to leave EOS lobby: {data.ResultCode}");
+                        }
+                        else
+                        {
+                            Debug.Log($"User {UserId} left EOS lobby");
+                        }
+                    });
+                }
+
+                // also disconnect from vivox
+                VivoxManager.Instance?.Logout();
             }
         }
 
@@ -102,7 +115,7 @@ namespace EOSLobbyTest
         {
             base.OnStopNetwork();
 
-            PlayerManager.Instance.RemovePlayer(UserId);
+            PlayerManager.Instance?.RemovePlayer(UserId);
         }
 
         [ServerRpc]
@@ -122,8 +135,7 @@ namespace EOSLobbyTest
         [ObserversRpc]
         private void DoStartingGame()
         {
-            UIPanelManager.Instance.HidePanel<UIPanelLobby>();
-            UIPanelManager.Instance.HidePanel<UIPanelMain>();
+            // ...
         }
     }
 }

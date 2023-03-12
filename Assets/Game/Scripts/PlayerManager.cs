@@ -11,13 +11,17 @@ namespace EOSLobbyTest
     {
         private List<PlayerInfo> _players = new List<PlayerInfo>();
 
-        // lobby id we are currently in
-        public string ActiveLobbyId { get; set; }
+        // EOS lobby id we are currently in
+        public string ActiveLobbyId { get; set; } = "testing";
 
         // triggered when ever any changes are done to the players
         public event Action PlayersChanged;
 
+        // the player info for the server
         public PlayerInfo ServerPlayer => _players.FirstOrDefault(x => x.IsServer);
+
+        // the player info for the active client
+        public PlayerInfo ActivePlayer => _players.FirstOrDefault(x => x.IsOwner);
 
         public List<PlayerInfo> GetPlayers()
         {

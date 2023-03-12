@@ -30,12 +30,62 @@ namespace EOSLobbyTest
 		}
 	}
 
+	public class MonoBehaviourSingletonForScene<T> : MonoBehaviour where T : Component
+	{
+		public static T Instance { get; private set; }
+
+		public virtual void OnDestroy()
+		{
+			if (Instance == this)
+			{
+				Instance = null;
+			}
+		}
+
+		public virtual void Awake()
+		{
+			if (Instance == null)
+			{
+				Instance = this as T;
+			}
+			else 	
+			{
+				Destroy(gameObject);
+			}
+		}
+	}
+
+	public class Singleton<T> where T : class, new()
+	{
+		private static T _instance;
+		public static T Instance
+		{
+			get
+			{				
+				if (_instance == null)
+				{
+					_instance = new T();
+				}
+
+				return _instance;
+			}
+		}
+	}
+
 
 	public class MonoBehaviourSingletonPersistent<T> : MonoBehaviour where T : Component
 	{
 		public static T Instance { get; private set; }
 
-		public virtual void Awake()
+		public virtual void OnDestroy()
+		{
+			if (Instance == this)
+			{
+				Instance = null;
+			}
+        }
+
+        public virtual void Awake()
 		{
 			if (Instance == null)
 			{

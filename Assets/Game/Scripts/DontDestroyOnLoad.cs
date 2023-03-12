@@ -10,6 +10,5 @@ namespace EOSLobbyTest
         {
             DontDestroyOnLoad(this.gameObject);            
         }
-
     }
 }

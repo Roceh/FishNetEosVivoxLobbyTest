@@ -26,11 +26,6 @@ namespace EOSLobbyTest
 
         private string[] _audioDeviceNames;
 
-        public void Back()
-        {
-            UIPanelManager.Instance.HidePanel<UIPanelSettings>(false);
-        }
-
         protected override void OnShowing()
         {
             resolutionDropDown.options.Clear();
@@ -79,15 +74,23 @@ namespace EOSLobbyTest
 
             voiceDeviceDropDown.options.Clear();
 
-            _audioDeviceNames = VivoxManager.Instance.AudioInputDevices.AvailableDevices.Select(x=> x.Name).ToArray();
+            _audioDeviceNames = VivoxManager.Instance?.AudioInputDevices.AvailableDevices.Select(x=> x.Name).ToArray();
 
-            foreach (var deviceName in _audioDeviceNames)
+            if (_audioDeviceNames != null)
             {
-                voiceDeviceDropDown.options.Add(new Dropdown.OptionData { text = deviceName });
-            }
+                foreach (var deviceName in _audioDeviceNames)
+                {
+                    voiceDeviceDropDown.options.Add(new Dropdown.OptionData { text = deviceName });
+                }
 
-            voiceDeviceDropDown.value = Array.FindIndex(_audioDeviceNames, x => x == VivoxManager.Instance.AudioInputDevices.ActiveDevice.Name);
-            voiceDeviceDropDown.RefreshShownValue();
+                voiceDeviceDropDown.value = Array.FindIndex(_audioDeviceNames, x => x == VivoxManager.Instance.AudioInputDevices.ActiveDevice.Name);
+                voiceDeviceDropDown.RefreshShownValue();
+            }
+            else
+            {
+                voiceDeviceDropDown.value = -1;
+                voiceDeviceDropDown.RefreshShownValue();
+            }
 
             voiceDeviceDropDown.onValueChanged.AddListener(HandleVoiceDeviceDropDown);
         }

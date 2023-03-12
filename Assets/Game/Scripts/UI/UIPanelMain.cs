@@ -43,8 +43,18 @@ namespace EOSLobbyTest
 
             UpdateControlState();
 
-            // do the connection to EOS
-            StartCoroutine(ConnectToEOS());
+            if (EOS.LocalProductUserId == null)
+            {
+                StartCoroutine(ConnectToEOS());
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (VivoxManager.Instance != null)
+            {
+                VivoxManager.Instance.OnInitialized -= Vivox_OnAuthenticated;
+            }
         }
 
         private void Vivox_OnAuthenticated()
@@ -53,7 +63,7 @@ namespace EOSLobbyTest
         }
 
         private IEnumerator ConnectToEOS()
-        {
+        {            
             var authData = new AuthData();
 
             // do the EOS login
@@ -110,74 +120,8 @@ namespace EOSLobbyTest
                 // did we create a valid room name ?
                 if (UIPanelHostDetails.Instance.UIResult)
                 {
-                    var options = new CreateLobbyOptions
-                    {
-                        LocalUserId = EOS.LocalProductUserId,
-                        MaxLobbyMembers = 4,
-                        PermissionLevel = LobbyPermissionLevel.Publicadvertised,
-                        PresenceEnabled = false,
-                        AllowInvites = false,
-                        BucketId = EOSConsts.AllLobbiesBucketId,
-                        DisableHostMigration = true,
-                        EnableRTCRoom = false,
-                        EnableJoinById = false,
-                        RejoinAfterKickRequiresInvite = false
-                    };
-
-                    // show busy panel while we create the lobby
-                    UIPanelManager.Instance.ShowPanel<UIPanelBusy>();
-
-                    EOS.GetCachedLobbyInterface().CreateLobby(ref options, null,
-                        delegate (ref CreateLobbyCallbackInfo data)
-                        {
-                            // hide busy panel 
-                            UIPanelManager.Instance.HidePanel<UIPanelBusy>();
-
-                            // created ok ?
-                            if (data.ResultCode != Result.Success)
-                            {
-                                Debug.LogError("Failed to create EOS lobby");
-                                return;
-                            }
-
-                            Debug.Log($"Created EOS lobby {data.LobbyId}");
-
-                            LobbyModification lobbyModification = new LobbyModification();
-                            AttributeData lobbyNameAttributeData = new AttributeData { Key = "lobby_name", Value = UIPanelHostDetails.Instance.LobbyName };
-
-                            var updateLobbyModificationOptions = new UpdateLobbyModificationOptions { LobbyId = data.LobbyId, LocalUserId = EOS.LocalProductUserId };
-
-                            EOS.GetCachedLobbyInterface().UpdateLobbyModification(ref updateLobbyModificationOptions, out lobbyModification);
-
-                            var attributeLobbyName = new LobbyModificationAddAttributeOptions { Attribute = lobbyNameAttributeData, Visibility = LobbyAttributeVisibility.Public };
-                            lobbyModification.AddAttribute(ref attributeLobbyName);
-
-                            var updateLobbyOptions = new UpdateLobbyOptions { LobbyModificationHandle = lobbyModification };
-
-                            EOS.GetCachedLobbyInterface().UpdateLobby(ref updateLobbyOptions, null, delegate (ref UpdateLobbyCallbackInfo updateData)
-                            {
-                                if (updateData.ResultCode != Result.Success)
-                                {
-                                    Debug.LogError($"Failed to update EOS lobby {updateData.LobbyId}: {updateData.ResultCode}");
-                                }
-                                else
-                                {
-                                    Debug.Log($"Updated EOS lobby {updateData.LobbyId}");
-
-                                    // record the lobby id to the player manager - so that on disconnection of client
-                                    // we can remove them from the EOS lobby
-                                    PlayerManager.Instance.ActiveLobbyId = updateData.LobbyId;
-
-                                    // setup ui room info
-                                    UIPanelLobby.Instance.LobbyName = UIPanelHostDetails.Instance.LobbyName;
-                                    UIPanelLobby.Instance.LobbyId = updateData.LobbyId;
-                                    UIPanelLobby.Instance.IsHost = true;
-
-                                    // show the room UI
-                                    UIPanelManager.Instance.ShowPanel<UIPanelLobby>();
-                                }
-                            });
-                        });
+                    UIPanelLobby.Instance.IsHost = true;
+                    UIPanelManager.Instance.ShowPanel<UIPanelLobby>();
                 }
             }
         }
@@ -214,7 +158,7 @@ namespace EOSLobbyTest
 
         public void ShowSettings()
         {
-            UIPanelManager.Instance.ShowPanel<UIPanelSettings>();
+            UIPanelManager.Instance.ShowPanel<UIPanelMenuSettings>();
         }
 
         public void Exit()

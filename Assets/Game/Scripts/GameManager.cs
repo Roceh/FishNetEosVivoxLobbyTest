@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 
 namespace EOSLobbyTest
 {
-    public class GameManager : MonoBehaviourSingleton<GameManager>
+    public class GameManager : MonoBehaviourSingletonForScene<GameManager>
     {
         [Tooltip("Prefab object for player controlled object")]
         [SerializeField]
@@ -22,16 +22,46 @@ namespace EOSLobbyTest
 
         private void Start()
         {
-            if (InstanceFinder.IsServer)
+            if (InstanceFinder.NetworkManager != null && InstanceFinder.NetworkManager.IsHost)
             {
                 InstanceFinder.SceneManager.OnClientPresenceChangeEnd += SceneManager_OnClientPresenceChangeEnd;
             }
 
-            VivoxManager.Instance.JoinChannel(UIPanelLobby.Instance.LobbyId + "_game", VivoxUnity.ChannelType.Positional, VivoxManager.ChatCapability.AudioOnly, true, null,
+            // if we are testing there will be no vivox instance - this is start in the lobby
+            VivoxManager.Instance?.JoinChannel(PlayerManager.Instance?.ActiveLobbyId + "_game", VivoxUnity.ChannelType.Positional, VivoxManager.ChatCapability.AudioOnly, true, null,
                () =>
                {
                    Debug.Log("Connected to vivox positional audio channel");
                });
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            if (InstanceFinder.NetworkManager != null)
+            {
+                InstanceFinder.SceneManager.OnClientPresenceChangeEnd -= SceneManager_OnClientPresenceChangeEnd;
+            }
+        }
+
+        private void Update()
+        {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                if (UIPanelManager.Instance.PanelIsVisible<UIPanelGameSettings>())
+                {
+                    UIPanelManager.Instance.HidePanel<UIPanelGameSettings>();
+                }
+                else if (UIPanelManager.Instance.PanelIsVisible<UIPanelGame>())
+                {
+                    UIPanelManager.Instance.HidePanel<UIPanelGame>();
+                }
+                else
+                {
+                    UIPanelManager.Instance.ShowPanel<UIPanelGame>();
+                }
+            }
         }
 
         private void SceneManager_OnClientPresenceChangeEnd(FishNet.Managing.Scened.ClientPresenceChangeEventArgs obj)

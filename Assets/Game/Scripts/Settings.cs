@@ -8,7 +8,7 @@ using UnityEngine;
 namespace EOSLobbyTest
 {
     [JsonObject(MemberSerialization.OptIn)]
-    public class Settings : MonoBehaviourSingletonPersistent<Settings>
+    public class Settings : Singleton<Settings>
     {
         private Resolution _currentResolution = new Resolution { width = 1920, height = 1080, refreshRate = 60 };
         private FullScreenMode _currentFullScreenMode = FullScreenMode.FullScreenWindow;
@@ -25,24 +25,8 @@ namespace EOSLobbyTest
             return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyDocuments), Application.productName, "settings.json");
         }
 
-        public override void Awake()
-        {
-            base.Awake();
-            Load();
-        }
 
-
-        private void Start()
-        {
-            var resolutionIndex = GetBestMatchIndexToAvailableResolutions();
-
-            if (resolutionIndex != -1)
-            {
-                Screen.SetResolution(Screen.resolutions[resolutionIndex].width, Screen.resolutions[resolutionIndex].height, Settings.Instance.CurrentFullScreenMode, Screen.resolutions[resolutionIndex].refreshRate);
-            }
-        }
-
-        private void Load()
+        public void Load()
         {
             try
             {

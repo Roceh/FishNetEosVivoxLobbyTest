@@ -147,11 +147,14 @@ namespace EOSLobbyTest
         {
             // Needed to add this to prevent some unsuccessful uninit, we can revisit to do better -carlo
             Client.Cleanup();
+
             if (_client != null)
             {
                 VivoxLog("Uninitializing client.");
                 _client.Uninitialize();
             }
+
+            LoginState = LoginState.LoggedOut;
         }
 
         public void Login(string displayName = null)

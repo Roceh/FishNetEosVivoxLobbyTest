@@ -6,16 +6,35 @@ using UnityEngine;
 
 namespace EOSLobbyTest
 {
-    public class UIPanelManager : MonoBehaviourSingleton<UIPanelManager>
+    public class UIPanelManager : MonoBehaviourSingletonForScene<UIPanelManager>
     {
         private List<IUIPanel> _panels;
 
         [Tooltip("Panel we are going to show first")]
         public string initialPanel;
 
-        private void Awake()
+        public override void Awake()
         {
+            base.Awake();
+
+            Application.quitting += Application_quitting;
+
             _panels = GetComponentsInChildren<IUIPanel>(true).ToList();
+        }
+
+        public override void OnDestroy()
+        {
+            base.OnDestroy();
+
+            Application.quitting -= Application_quitting;
+        }
+
+        private void Application_quitting()
+        {
+            foreach (var panel in _panels)
+            {
+                HidePanel(panel.Id);
+            }
         }
 
         private void Start()
@@ -73,14 +92,6 @@ namespace EOSLobbyTest
             if (panel != null)
             {
                 panel.DoShow();
-            }
-        }
-
-        private void OnApplicationQuit()
-        {
-            foreach (var panel in _panels)
-            {
-                HidePanel(panel.Id);
             }
         }
     }

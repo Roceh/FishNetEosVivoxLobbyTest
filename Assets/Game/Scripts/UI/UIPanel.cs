@@ -16,6 +16,18 @@ namespace EOSLobbyTest
         // triggered whenever the panel is hidden
         public event Action onHidden;
 
+        // we use an explict bool to track panel visiblity 
+        public bool IsVisible { get; set; }
+
+        private void OnDisable()
+        {
+            // if we think we are visible then tidy up - normally occurs on scene change
+            if (IsVisible)
+            {
+                DoHide(false);
+            }
+        }
+
         public UIPanel()
         {
             Id = GetType().Name;
@@ -26,6 +38,8 @@ namespace EOSLobbyTest
             OnShowing();
             
             gameObject.SetActive(true);
+
+            IsVisible = true;
 
             StartCoroutine(OnShowDelayed());
         }
@@ -52,6 +66,8 @@ namespace EOSLobbyTest
             UIResult = result;
 
             OnHiding();
+
+            IsVisible = false;
 
             gameObject.SetActive(false);
 

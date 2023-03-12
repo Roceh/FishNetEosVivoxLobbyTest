@@ -141,38 +141,15 @@ namespace EOSLobbyTest
 
         private void LobbyItem_JoinRequest(string lobbyName, LobbyDetails lobbyDetails, LobbyDetailsInfo lobbyDetailsInfo)
         {
-            SetLobbyBusy(true);
+            // hide lobbies
+            UIPanelManager.Instance.HidePanel<UIPanelLobbies>(true);
 
-            JoinLobbyOptions joinOptions = new JoinLobbyOptions();
-            joinOptions.LobbyDetailsHandle = lobbyDetails;
-            joinOptions.LocalUserId = EOS.LocalProductUserId;
-
-            string lobbyOwnerId = lobbyDetailsInfo.LobbyOwnerUserId.ToString();
-
-            EOS.GetCachedLobbyInterface().JoinLobby(ref joinOptions, null, delegate (ref JoinLobbyCallbackInfo data)
-            {
-                SetLobbyBusy(false);
-
-                if (data.ResultCode != Result.Success)
-                {
-                    Debug.LogErrorFormat("JoinLobby error '{0}'", data.ResultCode);
-                    return;
-                }
-
-                Debug.Log("Joined lobby." + data.LobbyId);
-                Debug.Log("Lobby owner " + lobbyOwnerId);
-
-                var fishy = InstanceFinder.NetworkManager.GetComponent<FishyEOS>();
-                fishy.RemoteProductUserId = lobbyOwnerId;
-
-                UIPanelManager.Instance.HidePanel<UIPanelLobbies>(true);
-
-                UIPanelLobby.Instance.LobbyName = lobbyName;
-                UIPanelLobby.Instance.LobbyId = data.LobbyId;
-                UIPanelLobby.Instance.IsHost = false;
-
-                UIPanelManager.Instance.ShowPanel<UIPanelLobby>();
-            });
+            // show lobby screen while we connect
+            UIPanelLobby.Instance.LobbyId = lobbyDetailsInfo.LobbyId;
+            UIPanelLobby.Instance.OwnerId = lobbyDetailsInfo.LobbyOwnerUserId.ToString();
+            UIPanelLobby.Instance.LobbyName = lobbyName;
+            UIPanelLobby.Instance.IsHost = false;
+            UIPanelManager.Instance.ShowPanel<UIPanelLobby>();
         }
 
         protected override void OnShowing()
