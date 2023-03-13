@@ -6,7 +6,9 @@ https://user-images.githubusercontent.com/105083894/224508896-f78008b5-c6c4-49f8
 
 Epic very kindly offer a free relay service (EOS), which you do not need to login to Epic or any other online service to use. It can be used with an anonymous device login, so if you want to release a game with multiplayer on Itch for example you can use EOS and force relays and get seemless AWS server relaying for free! 
 
-EOS does have voice comms, but no positional, however Unity offer Vivox voice comms for free up to 5000 concurrent users, which does allow positional voice comms. I've used the Vivox offered by Unity (you can get it direct from Vivox site instead) as there is no approval process for that one and you can use Unitys authentication process for Vivox login.
+EOS does have voice comms, but no positional out of the box, however Unity offer Vivox voice comms for free up to 5000 concurrent users, which does allow positional voice comms. I've used the Vivox offered by Unity (you can get it direct from Vivox site instead) as there is no approval process for that one and you can use Unitys authentication process for Vivox login.
+
+**UPDATE** - from reading EOS forums it is possible to retrieve each voice as a separate stream allowing redirection of the audio frames to a Unity AudioSource allow native Unity 3D audio. I've put this branch - which has Vivox removed here: https://github.com/Roceh/FishNetEosVivoxLobbyTest/tree/EOSVoiceOnly
 
 Project was done in Unity 2021.3.20f1
 
