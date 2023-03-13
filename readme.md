@@ -1,4 +1,4 @@
-# Basic Unity project for testing FishNet, Epic Online Services Relay & Lobbies & Vivox voice comms (lobby and positional)
+# Basic Unity project for testing FishNet, Epic Online Services Relay, Lobbies & Voice comms (lobby and positional)
 
 
 https://user-images.githubusercontent.com/105083894/224508896-f78008b5-c6c4-49f8-adb1-199fcca4bd2d.mp4
@@ -6,15 +6,14 @@ https://user-images.githubusercontent.com/105083894/224508896-f78008b5-c6c4-49f8
 
 Epic very kindly offer a free relay service (EOS), which you do not need to login to Epic or any other online service to use. It can be used with an anonymous device login, so if you want to release a game with multiplayer on Itch for example you can use EOS and force relays and get seemless AWS server relaying for free! 
 
-EOS does have voice comms, but no positional, however Unity offer Vivox voice comms for free up to 5000 concurrent users, which does allow positional voice comms. I've used the Vivox offered by Unity (you can get it direct from Vivox site instead) as there is no approval process for that one and you can use Unitys authentication process for Vivox login.
+This uses EOS voice directly and redirects audio frames from EOS voice to either a non 3D positional AudioSource when in the lobby or a positional AudioSource when in game.
 
 Project was done in Unity 2021.3.20f1
 
 Some notes:
 
 - For EOS relay you will need to setup an EOS account - follow the instructions on the EOS Plugin for Unity github page. (Ultimately you will need to fill in the info in Tools->EpicOnlineServicesConfigEditor)
-- For Vivox you will need to link your project to a Unity vivox Id - see https://support.unity.com/hc/en-us/articles/6380084154772-Vivox-How-do-I-get-started-with-Vivox-in-my-Unity-Project-
-- It might be worth trying EOS/Vivox samples first to be sure you have got the process right.  
+- It might be worth trying EOS samples first to be sure you have got the process right.  
 - The lobby join is sometimes a bit glitchy, not sure where the problem lies - to be fixed :)
 - You can't run up two instances of the app on the same PC and relay via EOS and use the same anonymous login for both. They need to be different PCs as the anonymous device login can only be used once. 
 - I will look at adding a better setup guide soon.
