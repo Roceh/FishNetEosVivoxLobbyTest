@@ -66,6 +66,7 @@ namespace EOSLobbyTest
             JoinLobbyByIdOptions joinOptions = new JoinLobbyByIdOptions();
             joinOptions.LocalUserId = EOS.LocalProductUserId;
             joinOptions.LobbyId = LobbyId;
+            joinOptions.LocalRTCOptions = new LocalRTCOptions { UseManualAudioOutput = true };
 
             // show busy panel while we join the lobby
             UIPanelManager.Instance.ShowPanel<UIPanelBusy>();
@@ -91,6 +92,8 @@ namespace EOSLobbyTest
                 PlayerManager.Instance.ActiveLobbyId = data.LobbyId;
 
                 Debug.Log($"UIPanelLobby: Connected to EOS lobby successfully.");
+
+                SetupCustomRTC();
 
                 InstanceFinder.ClientManager.StartConnection();
 
@@ -174,7 +177,6 @@ namespace EOSLobbyTest
 
                             SetupCustomRTC();
 
-
                             // if we are host create the FishNet server & local client
                             InstanceFinder.ServerManager.StartConnection();
                             InstanceFinder.ClientManager.StartConnection();
@@ -190,7 +192,7 @@ namespace EOSLobbyTest
             GetRTCRoomNameOptions options = new GetRTCRoomNameOptions()
             {
                 LobbyId = LobbyId,
-                LocalUserId = EOS.LocalProductUserId
+                LocalUserId = EOS.LocalProductUserId,
             };
 
             Result result = EOS.GetCachedLobbyInterface().GetRTCRoomName(ref options, out Utf8String roomName);

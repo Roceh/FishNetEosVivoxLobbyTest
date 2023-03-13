@@ -66,23 +66,6 @@ namespace EOSLobbyTest
                 InstanceFinder.SceneManager.AddConnectionToScene(obj.Connection, SceneManager.GetActiveScene());
                 var playerVehicle = Instantiate(playerPrefab, spawnPoint.position, spawnPoint.rotation);
                 InstanceFinder.ServerManager.Spawn(playerVehicle, obj.Connection);
-
-                // setup listener for local client prefab
-                if (obj.Connection.IsLocalClient)
-                {
-                    playerVehicle.AddComponent<AudioListener>();
-                }
-
-                // setup the 3d audio source for the players voice
-                var playerAudioSource = playerVehicle.GetComponent<AudioSource>();
-                var playerInfo = PlayerManager.Instance.GetPlayer(obj.Connection);
-
-                if (playerAudioSource != null && playerInfo != null)
-                {
-                    // switch to 3d audio source
-                    playerInfo.SwitchAudioSource(playerAudioSource);
-                }
-
                 _nextSpawnPointIndex++;
             }
         }
