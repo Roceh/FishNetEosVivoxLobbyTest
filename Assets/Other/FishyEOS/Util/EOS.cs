@@ -4,6 +4,8 @@ using Epic.OnlineServices.Connect;
 using Epic.OnlineServices.Lobby;
 using Epic.OnlineServices.P2P;
 using Epic.OnlineServices.Platform;
+using Epic.OnlineServices.RTC;
+using Epic.OnlineServices.RTCAudio;
 using PlayEveryWare.EpicOnlineServices;
 using UnityEngine;
 
@@ -18,6 +20,7 @@ namespace FishNet.Plugins.FishyEOS.Util
         private static ConnectInterface _cachedConnectInterface;
         private static P2PInterface _cachedP2PInterface;
         private static LobbyInterface _cachedLobbyInterface;
+        private static RTCInterface _cachedRTCInterface;
         private static EOSManager _eosManager;
         private static bool _createdOrGotPlatformInterface;
 
@@ -86,6 +89,14 @@ namespace FishNet.Plugins.FishyEOS.Util
             if (_cachedLobbyInterface != null) return _cachedLobbyInterface;
             _cachedLobbyInterface = PlatformInterface?.GetLobbyInterface();
             return _cachedLobbyInterface;
+        }
+
+        public static RTCInterface GetCachedRTCInterface()
+        {
+            if (!IsSafeToUseCache()) return null;
+            if (_cachedRTCInterface != null) return _cachedRTCInterface;
+            _cachedRTCInterface = PlatformInterface?.GetRTCInterface();
+            return _cachedRTCInterface;
         }
 
         private static bool IsSafeToUseCache()

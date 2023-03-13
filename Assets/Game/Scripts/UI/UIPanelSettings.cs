@@ -6,7 +6,6 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
-using VivoxUnity;
 
 namespace EOSLobbyTest
 {
@@ -20,7 +19,7 @@ namespace EOSLobbyTest
         [SerializeField]
         private Dropdown displayModeDropDown;
 
-        [Tooltip("Drop down for vivox voice device")]
+        [Tooltip("Drop down for voice device")]
         [SerializeField]
         private Dropdown voiceDeviceDropDown;
 
@@ -74,7 +73,7 @@ namespace EOSLobbyTest
 
             voiceDeviceDropDown.options.Clear();
 
-            _audioDeviceNames = VivoxManager.Instance?.AudioInputDevices.AvailableDevices.Select(x=> x.Name).ToArray();
+            //_audioDeviceNames = VivoxManager.Instance?.AudioInputDevices.AvailableDevices.Select(x=> x.Name).ToArray();
 
             if (_audioDeviceNames != null)
             {
@@ -83,7 +82,7 @@ namespace EOSLobbyTest
                     voiceDeviceDropDown.options.Add(new Dropdown.OptionData { text = deviceName });
                 }
 
-                voiceDeviceDropDown.value = Array.FindIndex(_audioDeviceNames, x => x == VivoxManager.Instance.AudioInputDevices.ActiveDevice.Name);
+                //voiceDeviceDropDown.value = Array.FindIndex(_audioDeviceNames, x => x == VivoxManager.Instance.AudioInputDevices.ActiveDevice.Name);
                 voiceDeviceDropDown.RefreshShownValue();
             }
             else
@@ -118,7 +117,7 @@ namespace EOSLobbyTest
 
         private void HandleVoiceDeviceDropDown(int selected)
         {
-            var existingDevice = VivoxManager.Instance.AudioInputDevices.AvailableDevices.FirstOrDefault(x => x.Name == _audioDeviceNames[selected]);
+            /*var existingDevice = VivoxManager.Instance.AudioInputDevices.AvailableDevices.FirstOrDefault(x => x.Name == _audioDeviceNames[selected]);
 
             if (existingDevice != null && existingDevice != VivoxManager.Instance.AudioInputDevices.ActiveDevice)
             {
@@ -131,7 +130,7 @@ namespace EOSLobbyTest
                         Settings.Instance.CurrentVoiceDeviceName = VivoxManager.Instance.AudioInputDevices.ActiveDevice.Name;
                     }
                 });
-            }            
+            }*/            
         }
     }
 }

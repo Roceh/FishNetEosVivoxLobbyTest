@@ -1,5 +1,6 @@
 using Epic.OnlineServices;
 using Epic.OnlineServices.Lobby;
+using Epic.OnlineServices.RTCAudio;
 using FishNet;
 using FishNet.Managing.Scened;
 using FishNet.Plugins.FishyEOS.Util;
@@ -13,7 +14,6 @@ namespace EOSLobbyTest
     public class UIPanelLobby : UIPanel<UIPanelLobby>, IUIPanel
     {
         private bool _isFishnetConnected;
-        private bool _isVivoxConnected;
 
         [Tooltip("Text item for lobby name")]
         [SerializeField]
@@ -113,13 +113,15 @@ namespace EOSLobbyTest
                 AllowInvites = false,
                 BucketId = EOSConsts.AllLobbiesBucketId,
                 DisableHostMigration = true,
-                EnableRTCRoom = false,
+                EnableRTCRoom = true,
                 EnableJoinById = false,
-                RejoinAfterKickRequiresInvite = false
+                RejoinAfterKickRequiresInvite = false,
+                LocalRTCOptions = new LocalRTCOptions { UseManualAudioOutput = true }
             };
 
             // show busy panel while we create the lobby
             UIPanelManager.Instance.ShowPanel<UIPanelBusy>();
+
 
             EOS.GetCachedLobbyInterface().CreateLobby(ref options, null,
                 delegate (ref CreateLobbyCallbackInfo data)
@@ -170,6 +172,9 @@ namespace EOSLobbyTest
 
                             Debug.Log($"UIPanelLobby: Updated EOS lobby {updateData.LobbyId} successfully. Lobby has now been created.");
 
+                            SetupCustomRTC();
+
+
                             // if we are host create the FishNet server & local client
                             InstanceFinder.ServerManager.StartConnection();
                             InstanceFinder.ClientManager.StartConnection();
@@ -180,16 +185,46 @@ namespace EOSLobbyTest
                 });
         }
 
+        private void SetupCustomRTC()
+        {
+            GetRTCRoomNameOptions options = new GetRTCRoomNameOptions()
+            {
+                LobbyId = LobbyId,
+                LocalUserId = EOS.LocalProductUserId
+            };
+
+            Result result = EOS.GetCachedLobbyInterface().GetRTCRoomName(ref options, out Utf8String roomName);
+
+            if (result != Result.Success)
+            {
+                Debug.Log($"UIPanelLobby: Could not get RTC Room Name. Error Code: {result}");
+                return;
+            }
+
+            Debug.Log($"UIPanelLobby: In RTC room {roomName}");
+
+            AddNotifyAudioBeforeRenderOptions addNotifyAudioBeforeRenderOptions = new AddNotifyAudioBeforeRenderOptions();
+
+            addNotifyAudioBeforeRenderOptions.LocalUserId = EOS.LocalProductUserId;
+            addNotifyAudioBeforeRenderOptions.RoomName = roomName;
+            addNotifyAudioBeforeRenderOptions.UnmixedAudio = true;
+
+            EOS.GetCachedRTCInterface().GetAudioInterface().AddNotifyAudioBeforeRender(ref addNotifyAudioBeforeRenderOptions, null, delegate (ref AudioBeforeRenderCallbackInfo data)
+            {
+                var player = PlayerManager.Instance.GetPlayer(data.ParticipantId.ToString());
+
+                if (player != null && data.Buffer.Value.Frames != null)
+                {
+                    player.EnqueueAudioFrame(data.Buffer.Value.Frames);
+                }
+            });
+        }
+
         protected override void OnShowing()
         {
             // add event callbacks
             PlayerManager.Instance.PlayersChanged += PlayerManager_PlayersChanged;
             InstanceFinder.NetworkManager.ClientManager.OnClientConnectionState += ClientManager_OnClientConnectionState;
-            VivoxManager.Instance.OnUserLoggedInEvent += VivoxManager_OnUserLoggedInEvent;
-            VivoxManager.Instance.OnUserLoggedOutEvent += VivoxManager_OnUserLoggedOutEvent;
-
-            // connect to vivox
-            VivoxManager.Instance.Login(Settings.Instance.CurrentPlayerName);
 
             // setup default state of ui
             players.ClearPlayers();
@@ -210,8 +245,6 @@ namespace EOSLobbyTest
         protected override void OnHidden()
         {
             // remove event callbacks
-            VivoxManager.Instance.OnUserLoggedInEvent -= VivoxManager_OnUserLoggedInEvent;
-            VivoxManager.Instance.OnUserLoggedOutEvent -= VivoxManager_OnUserLoggedOutEvent;
             PlayerManager.Instance.PlayersChanged -= PlayerManager_PlayersChanged;
             InstanceFinder.NetworkManager.ClientManager.OnClientConnectionState -= ClientManager_OnClientConnectionState;
         }
@@ -219,9 +252,9 @@ namespace EOSLobbyTest
         private void UpdateControlState()
         {
             // only allow user to back out if we are fully setup
-            buttonBack.interactable = _isFishnetConnected && _isVivoxConnected;
+            buttonBack.interactable = _isFishnetConnected;
             // only show start game button for host
-            SetShowStartGame(_isFishnetConnected && _isVivoxConnected && InstanceFinder.NetworkManager.IsServer);
+            SetShowStartGame(_isFishnetConnected && InstanceFinder.NetworkManager.IsServer);
         }
 
         private void PopulatePlayerList()
@@ -253,7 +286,7 @@ namespace EOSLobbyTest
 
         private void HideBusyIfAllConnected()
         {
-            if (_isVivoxConnected && _isFishnetConnected)
+            if (_isFishnetConnected)
             {
                 UIPanelManager.Instance.HidePanel<UIPanelBusy>();
             }
@@ -261,10 +294,10 @@ namespace EOSLobbyTest
 
         private void LeaveIfAllDisconnected()
         {
-            // if we are not connected to fishnet or vivox kill the lobby ui
-            if (!_isFishnetConnected && !_isVivoxConnected)
+            // if we are not connected to fishnet kill the lobby ui
+            if (!_isFishnetConnected)
             {
-                // disconnect from lobby - something has gone wrong with the connection to vivox or fishnet server
+                // disconnect from lobby - something has gone wrong with the connection to fishnet server
                 LeaveLobby();
 
                 // hide the lobby
@@ -293,7 +326,6 @@ namespace EOSLobbyTest
 
                 Debug.Log("UIPanelLobby: FishNet connection has stopped.");
 
-                VivoxManager.Instance.Logout();
                 LeaveIfAllDisconnected();
             }
 
@@ -337,35 +369,7 @@ namespace EOSLobbyTest
                     // if we are client just disconnect
                     InstanceFinder.ClientManager.StopConnection();
                 }
-
-                // begin logout of vivox
-                VivoxManager.Instance.Logout();
             }
-        }
-
-        private void VivoxManager_OnUserLoggedOutEvent()
-        {
-            _isVivoxConnected = false;
-
-            Debug.Log("UIPanelLobby: Vivox user has logged out.");
-
-            UpdateControlState();
-            LeaveIfAllDisconnected();
-        }
-
-        private void VivoxManager_OnUserLoggedInEvent()
-        {
-            // logged into vivox - so now join the channel using the lobbyid as the vivox channel name
-            VivoxManager.Instance.JoinChannel(LobbyId + "_lobby", VivoxUnity.ChannelType.NonPositional, VivoxManager.ChatCapability.AudioOnly, true, null,
-                () =>
-                {
-                    _isVivoxConnected = true;
-
-                    Debug.Log("UIPanelLobby: Vivox user has logged in and joined lobby.");
-
-                    HideBusyIfAllConnected();
-                    UpdateControlState();
-                });           
         }
     }
 }

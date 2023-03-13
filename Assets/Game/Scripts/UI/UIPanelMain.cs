@@ -39,21 +39,11 @@ namespace EOSLobbyTest
                 Settings.Instance.CurrentPlayerName = inputFieldPlayerName.text;
             });
 
-            VivoxManager.Instance.OnInitialized += Vivox_OnAuthenticated;
-
             UpdateControlState();
 
             if (EOS.LocalProductUserId == null)
             {
                 StartCoroutine(ConnectToEOS());
-            }
-        }
-
-        private void OnDestroy()
-        {
-            if (VivoxManager.Instance != null)
-            {
-                VivoxManager.Instance.OnInitialized -= Vivox_OnAuthenticated;
             }
         }
 
@@ -90,9 +80,6 @@ namespace EOSLobbyTest
             // only allow host/join if all logged in ok
             buttonHost.interactable = EOS.LocalProductUserId != null;
             buttonJoin.interactable = EOS.LocalProductUserId != null;
-
-            // as the voice device is not initialised until we logged in we have to wait on this - not ideal...
-            buttonSettings.interactable = VivoxManager.Instance.Initialized;
         }
 
         protected override void OnShowing()

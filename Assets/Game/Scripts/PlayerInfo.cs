@@ -5,9 +5,7 @@ using FishNet.Object;
 using FishNet.Object.Synchronizing;
 using FishNet.Plugins.FishyEOS.Util;
 using FishNet.Transporting.FishyEOSPlugin;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Concurrent;
 using UnityEngine;
 
 namespace EOSLobbyTest
@@ -22,17 +20,22 @@ namespace EOSLobbyTest
         [HideInInspector]
         public string UserId;
 
-        private void OnPlayerName(string prev, string next, bool asServer)
-        {
-            PlayerManager.Instance.PlayerUpdated(UserId);
-        }
+        private const int SampleRate = 48000;
 
-        public override void OnStartServer()
-        {
-            base.OnStartServer();
+        private ConcurrentQueue<short[]> _audioFrameQueue = new ConcurrentQueue<short[]>();
+        private bool _catchUp;
+        private short[] _currentVoiceFrame;
+        private AudioSource _voiceAudioSource;
+        private int _voiceFrameIndex;
 
-            var fishy = InstanceFinder.NetworkManager.GetComponent<FishyEOS>();
-            UserId = fishy.GetRemoteConnectionAddress(Owner.ClientId);
+        public void EnqueueAudioFrame(short[] frames)
+        {
+            if (_audioFrameQueue?.Count > SampleRate / 500) // Clear frames if it's way over the queue
+            {
+                _audioFrameQueue = new ConcurrentQueue<short[]>();
+            }
+
+            _audioFrameQueue?.Enqueue(frames);
         }
 
         public override void OnStartClient()
@@ -47,6 +50,14 @@ namespace EOSLobbyTest
             PlayerManager.Instance.AddPlayer(this);
         }
 
+        public override void OnStartServer()
+        {
+            base.OnStartServer();
+
+            var fishy = InstanceFinder.NetworkManager.GetComponent<FishyEOS>();
+            UserId = fishy.GetRemoteConnectionAddress(Owner.ClientId);
+        }
+
         public override void OnStopClient()
         {
             base.OnStopClient();
@@ -56,32 +67,11 @@ namespace EOSLobbyTest
             CleanUpEOSandVivox();
         }
 
-        private void CleanUpEOSandVivox()
+        public override void OnStopNetwork()
         {
-            if (IsOwner)
-            {
-                if (EOS.GetCachedLobbyInterface() != null)
-                {
-                    var updateLobbyModificationOptions = new LeaveLobbyOptions { LocalUserId = ProductUserId.FromString(UserId), LobbyId = PlayerManager.Instance.ActiveLobbyId };
+            base.OnStopNetwork();
 
-                    // as we have a bit of a race condition depending whether the server kicks or we leave
-                    // just report the failure as a normal log
-                    EOS.GetCachedLobbyInterface().LeaveLobby(ref updateLobbyModificationOptions, null, delegate (ref LeaveLobbyCallbackInfo data)
-                    {
-                        if (data.ResultCode != Result.Success)
-                        {
-                            Debug.Log($"User {UserId} failed to leave EOS lobby: {data.ResultCode}");
-                        }
-                        else
-                        {
-                            Debug.Log($"User {UserId} left EOS lobby");
-                        }
-                    });
-                }
-
-                // also disconnect from vivox
-                VivoxManager.Instance?.Logout();
-            }
+            PlayerManager.Instance?.RemovePlayer(UserId);
         }
 
         public override void OnStopServer()
@@ -111,19 +101,6 @@ namespace EOSLobbyTest
             }
         }
 
-        public override void OnStopNetwork()
-        {
-            base.OnStopNetwork();
-
-            PlayerManager.Instance?.RemovePlayer(UserId);
-        }
-
-        [ServerRpc]
-        private void SetPlayerName(string playerName)
-        {
-            PlayerName = playerName;
-        }
-
         public void SendStartingGame()
         {
             if (IsServer)
@@ -132,10 +109,100 @@ namespace EOSLobbyTest
             }
         }
 
+        public void SwitchAudioSource(AudioSource source)
+        {
+            if (_voiceAudioSource != null)
+            {
+                _voiceAudioSource.Stop();
+            }
+
+            _voiceAudioSource = source;
+            _voiceAudioSource.clip = AudioClip.Create("voice", SampleRate, 1, SampleRate, true, OnAudioRead);
+        }
+
+        private void CleanUpEOSandVivox()
+        {
+            if (IsOwner)
+            {
+                if (EOS.GetCachedLobbyInterface() != null)
+                {
+                    var updateLobbyModificationOptions = new LeaveLobbyOptions { LocalUserId = ProductUserId.FromString(UserId), LobbyId = PlayerManager.Instance.ActiveLobbyId };
+
+                    // as we have a bit of a race condition depending whether the server kicks or we leave
+                    // just report the failure as a normal log
+                    EOS.GetCachedLobbyInterface().LeaveLobby(ref updateLobbyModificationOptions, null, delegate (ref LeaveLobbyCallbackInfo data)
+                    {
+                        if (data.ResultCode != Result.Success)
+                        {
+                            Debug.Log($"User {UserId} failed to leave EOS lobby: {data.ResultCode}");
+                        }
+                        else
+                        {
+                            Debug.Log($"User {UserId} left EOS lobby");
+                        }
+                    });
+                }
+            }
+        }
+
         [ObserversRpc]
         private void DoStartingGame()
         {
             // ...
+        }
+
+        private void OnAudioRead(float[] data)
+        {
+            if (_audioFrameQueue?.Count > SampleRate / 1000 || _catchUp)
+            {
+                _catchUp = true;
+                _audioFrameQueue?.TryDequeue(out short[] _);
+                _catchUp = _audioFrameQueue?.Count <= 20;
+            }
+
+            for (var i = 0; i < data.Length; i++)
+            {
+                data[i] = 0;
+
+                if (_audioFrameQueue is null)
+                    continue;
+
+                if (_currentVoiceFrame is null || _voiceFrameIndex >= _currentVoiceFrame.Length)
+                {
+                    if (!_audioFrameQueue.TryDequeue(out short[] frame))
+                        continue;
+
+                    _voiceFrameIndex = 0;
+                    _currentVoiceFrame = frame;
+                }
+
+                data[i] = _currentVoiceFrame[_voiceFrameIndex++] / (float)short.MaxValue;
+            }
+        }
+
+        private void OnPlayerName(string prev, string next, bool asServer)
+        {
+            PlayerManager.Instance.PlayerUpdated(UserId);
+        }
+
+        [ServerRpc]
+        private void SetPlayerName(string playerName)
+        {
+            PlayerName = playerName;
+        }
+
+        private void Start()
+        {
+            _voiceAudioSource = GetComponent<AudioSource>();
+            _voiceAudioSource.clip = AudioClip.Create("voice", SampleRate, 1, SampleRate, true, OnAudioRead);
+        }
+
+        private void Update()
+        {
+            if (_voiceAudioSource != null && _audioFrameQueue.Count > 0 && !_voiceAudioSource.isPlaying)
+            {
+                _voiceAudioSource.Play();
+            }
         }
     }
 }

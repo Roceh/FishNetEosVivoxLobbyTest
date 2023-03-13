@@ -1,4 +1,5 @@
 using FishNet;
+using FishNet.Connection;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -44,6 +45,16 @@ namespace EOSLobbyTest
         {
             _players.RemoveAll(x => x.UserId == userId);
             PlayersChanged?.Invoke();
+        }
+
+        public PlayerInfo GetPlayer(string userId)
+        {
+            return _players.FirstOrDefault(x => x.UserId == userId);
+        }
+
+        public PlayerInfo GetPlayer(NetworkConnection connection)
+        {
+            return _players.FirstOrDefault(x => x.Owner == connection);
         }
     }
 }
